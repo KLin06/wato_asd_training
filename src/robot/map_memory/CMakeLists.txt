@@ -14,6 +14,9 @@ endif()
 find_package(ament_cmake REQUIRED) # ROS2 build tool
 find_package(rclcpp REQUIRED)      # ROS2 C++ package
 find_package(nav_msgs REQUIRED)    # For OccupancyGrid messages
+find_package(geometry_msgs REQUIRED) # For Quaternion
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED) # For tf2::getYaw
 
 # Compiles source files into a library
 # A library is not executed, instead other executables can link
@@ -29,6 +32,9 @@ target_include_directories(map_memory_lib
 ament_target_dependencies(map_memory_lib
   rclcpp
   nav_msgs
+  geometry_msgs
+  tf2
+  tf2_geometry_msgs
 )
 
 # Create ROS2 node executable from source files
@@ -38,6 +44,9 @@ target_link_libraries(map_memory_node map_memory_lib)
 ament_target_dependencies(map_memory_node
   rclcpp
   nav_msgs
+  geometry_msgs
+  tf2
+  tf2_geometry_msgs
 )
 
 # Copy executable to installation location

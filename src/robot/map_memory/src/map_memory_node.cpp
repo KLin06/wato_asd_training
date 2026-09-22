@@ -7,7 +7,7 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
   subscribeToOdom();
 
   map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map", QUEUE_SIZE);
-  timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&MapMemoryNode::updateMap, this));
+  timer_ = this->create_wall_timer(std::chrono::seconds(TIMER_PERIOD_SECONDS), std::bind(&MapMemoryNode::updateMap, this));
 }
 
 void MapMemoryNode::subscribeToCostmap() {
@@ -25,13 +25,19 @@ void MapMemoryNode::subscribeToOdom() {
 }
 
 void MapMemoryNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom) {
-  map_memory_.updatePosition(odom->pose.pose.position.x, odom->pose.pose.position.y);
+  world_frame_id_ = odom->header.frame_id;
+  map_memory_.updatePosition(odom->pose.pose.position.x, odom->pose.pose.position.y, odom->pose.pose.orientation);
 }
 
 void MapMemoryNode::updateMap() {
   if (map_memory_.shouldUpdateMap()) {
     map_memory_.integrateCostmap();
-    map_pub_->publish(map_memory_.getGlobalMap());
+
+    auto grid_msg = map_memory_.getGlobalMap();
+    grid_msg.header.stamp = this->now();
+    grid_msg.header.frame_id = world_frame_id_;
+    map_pub_->publish(grid_msg);
+
     map_memory_.resetUpdateFlags();
   }
 }
