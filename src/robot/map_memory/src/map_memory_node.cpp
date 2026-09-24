@@ -6,7 +6,14 @@ MapMemoryNode::MapMemoryNode() : Node("map_memory"), map_memory_(robot::MapMemor
   subscribeToCostmap();
   subscribeToOdom();
 
-  map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map", QUEUE_SIZE);
+  // TRANSIENT_LOCAL ("latched"): /map only publishes when the robot has
+  // moved UPDATE_DISTANCE, so a late subscriber (the planner, Foxglove)
+  // would otherwise see nothing while the robot sits still. Depth 1 — only
+  // the newest map is worth replaying. Subscribers must request
+  // transient_local too; a volatile subscriber still works, but without
+  // the replay.
+  map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+    "/map", rclcpp::QoS(1).transient_local().reliable());
   timer_ = this->create_wall_timer(std::chrono::seconds(TIMER_PERIOD_SECONDS), std::bind(&MapMemoryNode::updateMap, this));
 }
 

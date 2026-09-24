@@ -41,8 +41,12 @@ void CostmapCore::convertToGrid(double range, double angle, int& x_grid, int& y_
   int origin_x = grid_width_ / 2;
   int origin_y = grid_height_ / 2;
 
-  x_grid = origin_x + static_cast<int>(x / RESOLUTION);
-  y_grid = origin_y + static_cast<int>(y / RESOLUTION);
+  // std::floor, not static_cast: a cast truncates toward zero, so x = -0.05
+  // and x = +0.05 would both land in cell origin_x — one cell 0.2 m wide —
+  // and every point behind/right of the robot would sit one cell too close.
+  // floor maps [-0.1, 0) to origin_x - 1, matching info.origin's corner.
+  x_grid = origin_x + static_cast<int>(std::floor(x / RESOLUTION));
+  y_grid = origin_y + static_cast<int>(std::floor(y / RESOLUTION));
 }
 
 bool CostmapCore::inBounds(int x, int y) const {

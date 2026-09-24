@@ -57,6 +57,10 @@ class MapMemoryCore {
     // a made-up starting point
     std::optional<double> last_x_;
     std::optional<double> last_y_;
+    // Latest pose, updated on every odometry message; this (not last_x_/y_,
+    // which only serve the distance gate) is what fusion transforms with
+    std::optional<double> current_x_;
+    std::optional<double> current_y_;
     geometry_msgs::msg::Quaternion orientation_;
     bool costmap_updated_ = false;
     bool should_update_map_ = false;
