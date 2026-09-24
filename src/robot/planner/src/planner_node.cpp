@@ -8,16 +8,21 @@ PlannerNode::PlannerNode() : Node("planner"), planner_(robot::PlannerCore(this->
   subscribeToOdom();
 
   path_pub_ = this->create_publisher<nav_msgs::msg::Path>("/path", QUEUE_SIZE);
-  timer_ = this->create_wall_timer(std::chrono::seconds(TIMER_PERIOD_SECONDS), std::bind(&PlannerNode::timerCallback, this));
+  timer_ = this->create_wall_timer(std::chrono::milliseconds(TIMER_PERIOD_MS), std::bind(&PlannerNode::timerCallback, this));
 }
 
 void PlannerNode::subscribeToMap() {
+  // Must match map_memory's TRANSIENT_LOCAL publisher to get the last map
+  // replayed on startup; /map is only republished after the robot moves
+  // 1.5 m, so a volatile subscription would sit with no map while the
+  // robot is still. Depth 1: only the newest map is ever useful.
   map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    "/map", QUEUE_SIZE, std::bind(&PlannerNode::mapCallback, this, std::placeholders::_1));
+    "/map", rclcpp::QoS(1).transient_local().reliable(),
+    std::bind(&PlannerNode::mapCallback, this, std::placeholders::_1));
 }
 
 void PlannerNode::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr map) {
-  planner_.updateMap(map);
+  publishIfAny(planner_.updateMap(map, this->now()));
 }
 
 void PlannerNode::subscribeToGoal() {
@@ -26,7 +31,7 @@ void PlannerNode::subscribeToGoal() {
 }
 
 void PlannerNode::goalCallback(const geometry_msgs::msg::PointStamped::SharedPtr goal) {
-  planner_.updateGoal(goal->point);
+  publishIfAny(planner_.updateGoal(goal->point, goal->header.frame_id, this->now()));
 }
 
 void PlannerNode::subscribeToOdom() {
@@ -35,11 +40,19 @@ void PlannerNode::subscribeToOdom() {
 }
 
 void PlannerNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr odom) {
-  planner_.updatePosition(odom->pose.pose.position.x, odom->pose.pose.position.y, odom->pose.pose.orientation);
+  // This pose is the lidar's pose in sim_world (odometry_spoof publishes it
+  // that way), the same frame the map is in, so no transform is needed.
+  planner_.updatePosition(odom->pose.pose.position.x, odom->pose.pose.position.y);
 }
 
 void PlannerNode::timerCallback() {
-  planner_.checkGoalStatus();
+  publishIfAny(planner_.checkGoalStatus(this->now()));
+}
+
+void PlannerNode::publishIfAny(const std::optional<nav_msgs::msg::Path>& path) {
+  if (path) {
+    path_pub_->publish(*path);
+  }
 }
 
 int main(int argc, char ** argv)
