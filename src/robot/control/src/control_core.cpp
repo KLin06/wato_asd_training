@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <limits>
@@ -6,6 +7,13 @@
 
 namespace robot
 {
+
+namespace
+{
+
+constexpr double MAX_ANGULAR_SPEED = 1.0;  // rad/s
+
+}  // namespace
 
 ControlCore::ControlCore(rclcpp::Node& node)
   : logger_(node.get_logger()),
@@ -118,7 +126,10 @@ geometry_msgs::msg::Twist ControlCore::computeVelocity(
     2.0 * target_y / lookahead_distance_squared;
 
   cmd_vel.linear.x = linear_speed_;
-  cmd_vel.angular.z = linear_speed_ * curvature;
+  cmd_vel.angular.z = std::clamp(
+    linear_speed_ * curvature,
+    -MAX_ANGULAR_SPEED,
+    MAX_ANGULAR_SPEED);
   return cmd_vel;
 }
 

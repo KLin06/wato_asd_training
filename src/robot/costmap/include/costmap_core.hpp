@@ -31,7 +31,9 @@ class CostmapCore {
 
   private:
     const double RESOLUTION = 0.1;
-    const double INFLATION_RADIUS = 1;
+    // Inflate obstacle costs out to 2 m. The planner rejects cells with
+    // cost >= 50, which corresponds to the inner 1 m of this radius.
+    const double INFLATION_RADIUS = 2.0;
     const int8_t MAX_COST = 100;
 
     // Convert a polar (range, angle) reading into grid cell indices
