@@ -78,11 +78,11 @@ namespace robot
     State getState() const { return state_; }
 
   private:
-    // Cells with inflation cost >= this are refused. Costmap cost is
-    // 100 * (1 - d / 1.0 m), so cost 50 <=> 0.5 m from an obstacle point.
-    // The chassis is 1.0 m wide, so with its centreline on a cell of cost
-    // >= 50 a side is already touching something. The lidar (which the path
-    // is traced by) sits on that centreline.
+    // Cells with inflation cost >= this are refused. The costmap's inflation
+    // radius is 2.0 m, so cost 50 <=> 1.0 m from an obstacle point.
+    // The chassis is 1.0 m wide, leaving approximately 0.5 m of clearance
+    // on each side before accounting for tracking error and turning sweep.
+    // The lidar (which the path is traced by) sits on the centreline.
     static constexpr int8_t OBSTACLE_THRESHOLD = 50;
 
     // Cells below the threshold are passable but cost: traversal cost
