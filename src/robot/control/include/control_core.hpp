@@ -40,6 +40,9 @@ class ControlCore {
     double lookahead_distance_;
     double goal_tolerance_;
     double linear_speed_;
+
+    // True once a zero command has been sent, so it is sent only once
+    bool stopped_ = true;
 };
 
 } 

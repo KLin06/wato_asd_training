@@ -48,6 +48,21 @@ void ControlCore::controlLoop() {
     return;
   }
 
+  // The planner publishes an empty path when the goal is reached or no path
+  // exists. The simulator keeps executing the last /cmd_vel it received, so
+  // publishing nothing would leave the robot driving; send one zero command.
+  // Only once: repeating it would override the Foxglove teleop panel.
+  const bool at_goal = !current_path_->poses.empty() &&
+    computeDistance(robot_odom_->pose.pose.position,
+                    current_path_->poses.back().pose.position) < goal_tolerance_;
+  if (current_path_->poses.empty() || at_goal) {
+    if (!stopped_) {
+      cmd_vel_pub_->publish(geometry_msgs::msg::Twist());
+      stopped_ = true;
+    }
+    return;
+  }
+
   auto lookahead_point = findLookaheadPoint();
   if (!lookahead_point) {
     return;
@@ -55,6 +70,7 @@ void ControlCore::controlLoop() {
 
   auto cmd_vel = computeVelocity(*lookahead_point);
   cmd_vel_pub_->publish(cmd_vel);
+  stopped_ = false;
 }
 
 std::optional<geometry_msgs::msg::PoseStamped> ControlCore::findLookaheadPoint() {
